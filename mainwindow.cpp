@@ -1,11 +1,8 @@
 #include "mainwindow.h"
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-{
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    Assimp::Importer importer;
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
 }
-
