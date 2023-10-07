@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/ScreenShaders">
+        <file>ScreenSwap/ScreenFrag.frag</file>
+        <file>ScreenSwap/ScreenVert.vert</file>
+    </qresource>
+</RCC>
