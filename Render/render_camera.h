@@ -81,11 +81,11 @@ public:
 
 public:
     explicit Camera(QObject *parent = nullptr, float Asp = 16.0 / 9.0,
-                    int FOV = 25, float Near = 0.01, float Far = 10.0,
-                    float Azimuth = 3.4415, float Altitude = M_PI / 3.0,
+                    int FOV = 35, float Near = 0.01, float Far = 10.0,
+                    float Azimuth = M_PI * 0, float Altitude = M_PI * 0.5,
                     float rSense = 0.005, float zSense = 0.1,
-                    float DistanceCoef = 5.5,
-                    QVector3D LookPos = QVector3D(0, 0.03, 0));
+                    float DistanceCoef = 2.1,
+                    QVector3D LookPos = QVector3D(0, 0, 0));
 
 signals:
 };

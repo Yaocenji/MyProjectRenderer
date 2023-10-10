@@ -90,15 +90,15 @@ void Mesh::synchronizeGLObjects(QOpenGLFunctions_4_5_Core *f) {
     getVertexBuffer(vertRawData);
     getIndexBuffer(indRawData);
 
-    qDebug() << "synchronizeGLObjects:";
-    qDebug() << "vertRawData";
-    for (int i = 0; i < getVertexBufferSize(); ++i) {
-        qDebug() << vertRawData[i] << " ";
-    }
-    qDebug() << "indRawData";
-    for (int i = 0; i < getIndexBufferSize(); ++i) {
-        qDebug() << indRawData[i] << " ";
-    }
+    //    qDebug() << "synchronizeGLObjects:";
+    //    qDebug() << "vertRawData";
+    //    for (unsigned int i = 0; i < getVertexBufferSize(); ++i) {
+    //        qDebug() << vertRawData[i] << " ";
+    //    }
+    //    qDebug() << "indRawData";
+    //    for (unsigned int i = 0; i < getIndexBufferSize(); ++i) {
+    //        qDebug() << indRawData[i] << " ";
+    //    }
 
     vao->bind();
 
@@ -110,30 +110,46 @@ void Mesh::synchronizeGLObjects(QOpenGLFunctions_4_5_Core *f) {
 
     int cnt = 0;
     int stride_size = verticesData[0]->getSize();
+
     //  顶点位置信息
     f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                             sizeof(float) * stride_size, (void *)(cnt));
+                             sizeof(float) * stride_size,
+                             (void *)(cnt * sizeof(float)));
     f->glEnableVertexAttribArray(0);
     cnt += 3;
+
     // 法线信息
     if (verticesData[0]->hasNormal) {
         f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                                 sizeof(float) * stride_size, (void *)(cnt));
+                                 sizeof(float) * stride_size,
+                                 (void *)(cnt * sizeof(float)));
         f->glEnableVertexAttribArray(1);
         cnt += 3;
     }
+
+    // 切线信息
+    if (verticesData[0]->hasTangent) {
+        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+                                 sizeof(float) * stride_size,
+                                 (void *)(cnt * sizeof(float)));
+        f->glEnableVertexAttribArray(2);
+        cnt += 3;
+    }
+
     // 顶点颜色信息
     if (verticesData[0]->hasColor) {
-        f->glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
-                                 sizeof(float) * stride_size, (void *)(cnt));
-        f->glEnableVertexAttribArray(2);
+        f->glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+                                 sizeof(float) * stride_size,
+                                 (void *)(cnt * sizeof(float)));
+        f->glEnableVertexAttribArray(3);
         cnt += 4;
     }
     // 纹理坐标信息
     for (unsigned int i = 0; i < verticesData[0]->texcoordNumber; ++i) {
-        f->glVertexAttribPointer(3 + i, 2, GL_FLOAT, GL_FALSE,
-                                 sizeof(float) * stride_size, (void *)(cnt));
-        f->glEnableVertexAttribArray(3 + i);
+        f->glVertexAttribPointer(4 + i, 2, GL_FLOAT, GL_FALSE,
+                                 sizeof(float) * stride_size,
+                                 (void *)(cnt * sizeof(float)));
+        f->glEnableVertexAttribArray(4 + i);
         cnt += 2;
     }
 
@@ -145,9 +161,37 @@ void Mesh::synchronizeGLObjects(QOpenGLFunctions_4_5_Core *f) {
     delete[] indRawData;
 }
 
-void Mesh::draw(QOpenGLFunctions_4_5_Core *f) {
+#define setShaderProperty(propertyName, bindTexUnit)                   \
+    {                                                                  \
+        if (material.propertyName != nullptr) {                        \
+            material.propertyName->texture->bind(bindTexUnit);         \
+            curShader->setUniformValue(#propertyName, bindTexUnit);    \
+            curShader->setUniformValue(#propertyName "UseTex", true);  \
+        } else {                                                       \
+            curShader->setUniformValue(#propertyName "Vec",            \
+                                       material.propertyName##Val);    \
+            curShader->setUniformValue(#propertyName "UseTex", false); \
+        }                                                              \
+    }
+
+void Mesh::draw(QOpenGLShaderProgram *curShader, QOpenGLFunctions_4_5_Core *f) {
     vao->bind();
+    vbo->bind();
+    ebo->bind();
+    // 绑定&传递纹理
+    setShaderProperty(diffuseOrAlbedo, 1);
+    setShaderProperty(mras, 2);
+    setShaderProperty(specularAndTint, 3);
+    setShaderProperty(sheenAndTintWithclearCoatAndTint, 4);
+    setShaderProperty(normalAO, 5);
+    setShaderProperty(Luminance, 6);
+    setShaderProperty(Transparency, 7);
+
     f->glDrawElements(GL_TRIANGLES, getIndexBufferSize(), GL_UNSIGNED_INT, 0);
+
+    vao->release();
+    vbo->release();
+    ebo->release();
 }
 
 } // namespace Render

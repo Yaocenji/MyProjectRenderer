@@ -3,4 +3,10 @@
         <file>ScreenSwap/ScreenFrag.frag</file>
         <file>ScreenSwap/ScreenVert.vert</file>
     </qresource>
+    <qresource prefix="/FowardRenderingShaders">
+        <file>FowardRendering/vert.vert</file>
+        <file>FowardRendering/vertColor.frag</file>
+        <file>FowardRendering/diffuseUnlit.frag</file>
+        <file>FowardRendering/diffuseLambert.frag</file>
+    </qresource>
 </RCC>

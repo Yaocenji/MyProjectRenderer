@@ -10,8 +10,9 @@ CONFIG += c++17
 
 SOURCES += \
     Render/render_gl_realtime_raster_renderer.cpp \
+    Render/render_gl_shadermanager.cpp \
     Render/render_mesh.cpp \
-    Render/render_scene.cpp \
+    Render/render_model.cpp \
     main.cpp \
     mainwindow.cpp \
     Render/render_camera.cpp \
@@ -28,8 +29,9 @@ SOURCES += \
 
 HEADERS += \
     Render/render_gl_realtime_raster_renderer.h \
+    Render/render_gl_shadermanager.h \
     Render/render_mesh.h \
-    Render/render_scene.h \
+    Render/render_model.h \
     mainwindow.h \
     Render/render_camera.h \
     Render/render_renderimage2d.h \

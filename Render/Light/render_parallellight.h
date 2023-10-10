@@ -2,7 +2,9 @@
 #define RENDER_PARALLELLIGHT_H
 
 #include <QObject>
+#include <QOpenGLShaderProgram>
 #include <QVector3D>
+#include <QVector4D>
 
 #include "render_light.h"
 
@@ -21,6 +23,9 @@ public:
 
     /// 获取光线方向
     QVector3D getDirection();
+
+    /// 绑定主光源
+    void bind(QOpenGLShaderProgram *curShader);
 
 public:
     explicit ParallelLight(QObject *parent = nullptr,

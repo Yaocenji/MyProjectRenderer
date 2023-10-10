@@ -18,4 +18,11 @@ QVector3D ParallelLight::getDirection() {
     return direction.normalized();
 }
 
+void ParallelLight::bind(QOpenGLShaderProgram *curShader) {
+    curShader->setUniformValue("mLight.Direction", direction);
+    curShader->setUniformValue(
+        "mLight.ColorAndStrength",
+        QVector4D(color.redF(), color.greenF(), color.blueF(), strength));
+}
+
 } // namespace Render

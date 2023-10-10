@@ -8,12 +8,15 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
+#include <QTransform>
 
+#include "Light/render_parallellight.h"
 #include "render_camera.h"
+#include "render_gl_shadermanager.h"
 #include "render_mesh.h"
+#include "render_model.h"
 #include "render_renderimage2d.h"
 #include "render_rendertexture.h"
-#include "render_scene.h"
 
 namespace Render {
 
@@ -29,16 +32,26 @@ public:
     void paintGL() override;
 
 public:
+    /// shaderManager
+    ShaderManager *shaders;
     /// 离屏渲染RT
     RenderTexture *screenRT;
-    /// 离屏渲染vertex shader
-    QOpenGLShader *screenShaderVert;
-    /// 离屏渲染fragment shader
-    QOpenGLShader *screenShaderFrag;
-    /// 离屏渲染shaderprogram
-    QOpenGLShaderProgram *screenShaderProgram;
     /// 离屏渲染屏幕矩形网格
     Mesh *screenMesh;
+
+public:
+    /// 摄像机0
+    Camera *camera0;
+    /// 临时model矩阵
+    QMatrix4x4 *model;
+
+public:
+    /// 光源
+    ParallelLight *mainLight;
+
+public:
+    /// CornellBox
+    Model *cornellBox;
 
 signals:
 };

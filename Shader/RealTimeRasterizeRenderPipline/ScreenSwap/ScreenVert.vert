@@ -1,6 +1,7 @@
 #version 450 core
 
 layout(location = 0) in vec3 scrVertPos;
+// layout(location = 2) in vec3 scrNorm;
 
 out vec2 scrCoord;
 
