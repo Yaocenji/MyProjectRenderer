@@ -1,7 +1,6 @@
 #version 450 core
 
 in vec4 ndcPos;
-in vec3 norm;
 in vec3 tang;
 in vec4 col;
 
@@ -35,6 +34,7 @@ uniform bool normalAOUseTex;
 
 */
 
+
 void main(){
     vec4 albedo;
     if (diffuseOrAlbedoUseTex)
@@ -43,4 +43,5 @@ void main(){
         albedo = diffuseOrAlbedoVec;
 
     FragColor = vec4(albedo.xyz, 1.0);
+
 }

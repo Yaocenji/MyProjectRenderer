@@ -9,6 +9,9 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Render/Light/render_arealight.cpp \
+    Render/Light/render_pointlight.cpp \
+    Render/Light/render_roundarealight.cpp \
     Render/render_gl_realtime_raster_renderer.cpp \
     Render/render_gl_shadermanager.cpp \
     Render/render_mesh.cpp \
@@ -28,6 +31,9 @@ SOURCES += \
 
 
 HEADERS += \
+    Render/Light/render_arealight.h \
+    Render/Light/render_pointlight.h \
+    Render/Light/render_roundarealight.h \
     Render/render_gl_realtime_raster_renderer.h \
     Render/render_gl_shadermanager.h \
     Render/render_mesh.h \

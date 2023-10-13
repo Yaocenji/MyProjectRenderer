@@ -11,6 +11,8 @@ GL_Realtime_Raster_Renderer::GL_Realtime_Raster_Renderer(QWidget *parent)
     model = nullptr;
 
     mainLight = nullptr;
+    pointLight0 = nullptr;
+    pointLight1 = nullptr;
 
     cornellBox = nullptr;
 }
@@ -24,7 +26,7 @@ void GL_Realtime_Raster_Renderer::initializeGL() {
     shaders = new ShaderManager(this);
 
     // 初始化屏幕shader
-    screenRT = new RenderTexture(this, false);
+    screenRT = new RenderTexture(this, true);
     screenRT->recreateRenderTexture(width(), height(), *(this));
 
     // screenMesh是屏幕空间的平面
@@ -52,14 +54,26 @@ void GL_Realtime_Raster_Renderer::initializeGL() {
     model->setToIdentity();
 
     camera0 = new Camera(this);
+    //    camera0->setClipPlanes(0.01, 3.0);
 
     // 初始化光源
     mainLight = new ParallelLight(this);
+    mainLight->setStrength(20.0f);
+
+    pointLight0 = new PointLight(this);
+    pointLight0->setPos(QVector3D(-0.4, 0.4, 0.4));
+    pointLight0->setStrength(5.0f);
+
+    pointLight1 = new PointLight(this);
+    pointLight1->setPos(QVector3D(0.0, 0.4, 0.0));
+    pointLight1->setStrength(20.0f);
+
+    //    qDebug() << glGetError();
 
     // 读取康奈尔盒
     cornellBox = new Model(
         "E:/Qt/QtProjects/MyProjectRenderer/testModelsAndTextures/"
-        "CornellBox_2_test.fbx",
+        "CornellBox_2.fbx",
         this);
     cornellBox->synchronizeGLObjects(this);
 
@@ -79,27 +93,51 @@ void GL_Realtime_Raster_Renderer::paintGL() {
     // 同步上下文
     globalgl::thisContext = this;
 
-    // 准备离屏渲染
-    //    PreRenderTerrainGround(swapFrameBuffer);
-
     /**
      *  GL准备
      */
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
+    screenRT->clear(*this);
     screenRT->bind(*this);
     //    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
     glClear(GL_COLOR_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    shaders->diffuseUnlit_proj->bind();
-    shaders->diffuseUnlit_proj->setUniformValue("model", *model);
-    shaders->diffuseUnlit_proj->setUniformValue("view", camera0->matrixView());
-    shaders->diffuseUnlit_proj->setUniformValue("proj",
-                                                camera0->matrixProjection());
-    mainLight->bind(shaders->diffuseUnlit_proj);
-    cornellBox->draw(shaders->diffuseUnlit_proj, this);
+    shaders->disneyBRDF_proj->bind();
+
+    // 摄像机设置
+    shaders->disneyBRDF_proj->setUniformValue("model", *model);
+    shaders->disneyBRDF_proj->setUniformValue("view", camera0->matrixView());
+    shaders->disneyBRDF_proj->setUniformValue("proj",
+                                              camera0->matrixProjection());
+
+    shaders->disneyBRDF_proj->setUniformValue("model_inverse",
+                                              model->inverted());
+    shaders->disneyBRDF_proj->setUniformValue("model_inverse_transpose",
+                                              model->inverted().transposed());
+    shaders->disneyBRDF_proj->setUniformValue("view_inverse",
+                                              camera0->matrixView().inverted());
+    shaders->disneyBRDF_proj->setUniformValue(
+        "proj_inverse", camera0->matrixProjection().inverted());
+
+    shaders->disneyBRDF_proj->setUniformValue("near", camera0->Near());
+    shaders->disneyBRDF_proj->setUniformValue("far", camera0->Far());
+
+    shaders->disneyBRDF_proj->setUniformValue("cameraPos",
+                                              camera0->cameraPos());
+
+    // 灯光设置
+
+    //    mainLight->bind(shaders->disneyBRDF_proj);
+
+    pointLight0->bind(shaders->disneyBRDF_proj, 0);
+    pointLight1->bind(shaders->disneyBRDF_proj, 1);
+    shaders->disneyBRDF_proj->setUniformValue("usedPointLightNumber", 2);
+
+    // 正式绘制
+    cornellBox->draw(shaders->disneyBRDF_proj, this);
 
     // 帧缓冲搬运
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
@@ -112,6 +150,9 @@ void GL_Realtime_Raster_Renderer::paintGL() {
     glBindTexture(GL_TEXTURE_2D, screenRT->colorTexture());
 
     shaders->screenShaderProgram->setUniformValue("screenRT", 0);
+
+    // 是否进行hdr映射和gamma变换
+    shaders->screenShaderProgram->setUniformValue("isDebug", false);
 
     screenMesh->draw(shaders->screenShaderProgram, this);
 }

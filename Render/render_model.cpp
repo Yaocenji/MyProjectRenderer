@@ -61,12 +61,62 @@ void Model::processNode(aiNode *node, const aiScene *scene) {
     // 处理节点所有的网格（如果有的话）
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        Mesh *m = processMesh(mesh, scene);
+
+        //        qDebug() << node->mName.C_Str();
+        m->modelMatrix = nodeGlobalTranformation(node);
+
+        //        qDebug() << "ans " << m->modelMatrix << "\n";
+
+        meshes.push_back(m);
     }
     // 接下来对它的子节点重复这一过程
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
         processNode(node->mChildren[i], scene);
     }
+}
+
+float cor(float x) {
+    if (abs(x) <= 1e-6)
+        return 0;
+    else
+        return x;
+}
+
+QMatrix4x4 Model::nodeGlobalTranformation(aiNode *node) {
+    QQueue<aiNode *> nodeSt;
+    // 将该节点到根节点的路径push入队列
+    aiNode *tarNode = node;
+    while (true) {
+        nodeSt.push_back(tarNode);
+        if (tarNode->mParent == nullptr)
+            break;
+        else
+            tarNode = tarNode->mParent;
+    }
+    QMatrix4x4 ans;
+    ans.setToIdentity();
+
+    // 去掉叶子节点，叶子节点的transform有问题
+    nodeSt.pop_back();
+    // 开始依次变换
+    while (!nodeSt.empty()) {
+        aiMatrix4x4 *rowTrans = &(nodeSt.front()->mTransformation);
+        // 需要倒第三行的原因：坐标系变换
+        QMatrix4x4 thisTrans(
+            cor(rowTrans->a1), cor(rowTrans->a2), cor(rowTrans->a3),
+            cor(rowTrans->a4), cor(rowTrans->b1), cor(rowTrans->b2),
+            cor(rowTrans->b3), cor(rowTrans->b4), cor(rowTrans->c1),
+            cor(rowTrans->c2), cor(rowTrans->c3), cor(rowTrans->c4),
+            cor(rowTrans->d1), cor(rowTrans->d2), cor(rowTrans->d3),
+            cor(rowTrans->d4));
+
+        //        qDebug() << "trans " << thisTrans;
+
+        ans = thisTrans * ans;
+        nodeSt.pop_front();
+    }
+    return ans;
 }
 
 Mesh *Model::processMesh(aiMesh *mesh, const aiScene *scene) {
@@ -168,6 +218,13 @@ Material Model::loadMaterialTexturesByName(aiMaterial *mat) {
         } else {
             // 没有载入该纹理，那么需要载入该纹理，然后指定
             Texture *newTex = new Texture(directory + texs[tmp]);
+            // 设置过滤模式
+            newTex->texture->setMinMagFilters(
+                QOpenGLTexture::LinearMipMapLinear,
+                QOpenGLTexture::LinearMipMapLinear);
+            // 设置重复模式
+            newTex->texture->setWrapMode(QOpenGLTexture::ClampToEdge);
+            // 加入当前纹理
             textures.append(newTex);
             newmat.diffuseOrAlbedo = textures[textures.size() - 1];
         }
@@ -177,7 +234,7 @@ Material Model::loadMaterialTexturesByName(aiMaterial *mat) {
     // 寻找是否有高光度+高光度tint纹理
     findAndLoadTexture2MeshFromList(specularAndTint, "type_SAT");
     // 寻找是否有光泽度+光泽度tint+清漆度+清漆度tint纹理
-    findAndLoadTexture2MeshFromList(sheenAndTintWithclearCoatAndTint,
+    findAndLoadTexture2MeshFromList(sheenAndTintWithclearCoatAndGloss,
                                     "type_STCT");
     // 寻找是否有法线+ao纹理
     findAndLoadTexture2MeshFromList(normalAO, "type_NAO");

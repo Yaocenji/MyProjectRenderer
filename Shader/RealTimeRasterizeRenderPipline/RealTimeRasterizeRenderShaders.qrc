@@ -8,5 +8,6 @@
         <file>FowardRendering/vertColor.frag</file>
         <file>FowardRendering/diffuseUnlit.frag</file>
         <file>FowardRendering/diffuseLambert.frag</file>
+        <file>FowardRendering/DisneyBRDF_PBR.frag</file>
     </qresource>
 </RCC>

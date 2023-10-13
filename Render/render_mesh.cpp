@@ -9,6 +9,9 @@ Mesh::Mesh(QObject *parent) : QObject{parent} {
     vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     ebo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
     vao = new QOpenGLVertexArrayObject(this);
+
+    modelMatrix = QMatrix4x4();
+    modelMatrix.setToIdentity();
 }
 
 /// 根据数组初始化顶点信息
@@ -126,7 +129,6 @@ void Mesh::synchronizeGLObjects(QOpenGLFunctions_4_5_Core *f) {
         f->glEnableVertexAttribArray(1);
         cnt += 3;
     }
-
     // 切线信息
     if (verticesData[0]->hasTangent) {
         f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
@@ -182,10 +184,16 @@ void Mesh::draw(QOpenGLShaderProgram *curShader, QOpenGLFunctions_4_5_Core *f) {
     setShaderProperty(diffuseOrAlbedo, 1);
     setShaderProperty(mras, 2);
     setShaderProperty(specularAndTint, 3);
-    setShaderProperty(sheenAndTintWithclearCoatAndTint, 4);
+    setShaderProperty(sheenAndTintWithclearCoatAndGloss, 4);
     setShaderProperty(normalAO, 5);
     setShaderProperty(Luminance, 6);
     setShaderProperty(Transparency, 7);
+
+    // 传递位置信息
+    curShader->setUniformValue("model", modelMatrix);
+    curShader->setUniformValue("model_inverse", modelMatrix.inverted());
+    curShader->setUniformValue("model_inverse_transpose",
+                               modelMatrix.inverted().transposed());
 
     f->glDrawElements(GL_TRIANGLES, getIndexBufferSize(), GL_UNSIGNED_INT, 0);
 

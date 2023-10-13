@@ -11,6 +11,7 @@
 #include <QTransform>
 
 #include "Light/render_parallellight.h"
+#include "Light/render_pointlight.h"
 #include "render_camera.h"
 #include "render_gl_shadermanager.h"
 #include "render_mesh.h"
@@ -46,8 +47,11 @@ public:
     QMatrix4x4 *model;
 
 public:
-    /// 光源
+    /// 主光源
     ParallelLight *mainLight;
+    /// 点光源
+    PointLight *pointLight0;
+    PointLight *pointLight1;
 
 public:
     /// CornellBox

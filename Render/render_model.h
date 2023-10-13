@@ -5,8 +5,10 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <QMatrix4x4>
 #include <QObject>
 #include <QOpenGLShaderProgram>
+#include <QQueue>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -31,6 +33,8 @@ public:
     void loadModel(QString path);
     // 处理节点
     void processNode(aiNode *node, const aiScene *scene);
+    // 计算节点的全局变换
+    QMatrix4x4 nodeGlobalTranformation(aiNode *node);
     // 处理网格
     Mesh *processMesh(aiMesh *mesh, const aiScene *scene);
     // 加载纹理

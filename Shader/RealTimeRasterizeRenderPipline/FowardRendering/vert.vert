@@ -14,9 +14,11 @@ layout (location = 4) in vec2 Texcoord0;
 // layout (location = 10) in vec2 Texcoord6;
 // layout (location = 11) in vec2 Texcoord7;
 
+// out vec4 worldPos;
+out vec4 clipPos;
 out vec4 ndcPos;
-out vec3 norm;
 out vec3 tang;
+out vec3 worldNorm;
 out vec4 col;
 
 out vec2 uv0;
@@ -26,17 +28,23 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
 
+uniform mat4 model_inverse;
+uniform mat4 model_inverse_transpose;
+// uniform mat4 view_inverse;
+// uniform mat4 proj_inverse;
+
 
 void main(){
     // TODO：此处的变换特别考虑
-    norm = Normal;
+    worldNorm = normalize((model_inverse_transpose * vec4(Normal, 0.0)).xyz);
     tang = Tangent;
 
     col = Color;
 
     uv0 = Texcoord0;
 
-    vec4 clipPos = proj * view * model * vec4(Position, 1.0);
+    vec4 worldPos = model * vec4(Position, 1.0);
+    clipPos = proj * view * worldPos;
     ndcPos = clipPos / clipPos.w;
     gl_Position = ndcPos;
 

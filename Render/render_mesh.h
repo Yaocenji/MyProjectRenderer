@@ -6,6 +6,7 @@
 #include <QColor>
 #include <QDebug>
 #include <QImage>
+#include <QMatrix4x4>
 #include <QObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
@@ -218,7 +219,7 @@ public:
         diffuseOrAlbedo = nullptr;
         mras = nullptr;
         specularAndTint = nullptr;
-        sheenAndTintWithclearCoatAndTint = nullptr;
+        sheenAndTintWithclearCoatAndGloss = nullptr;
         normalAO = nullptr;
         Luminance = nullptr;
         Transparency = nullptr;
@@ -230,7 +231,8 @@ public:
         // 材质默认值
         diffuseOrAlbedoVal = QVector4D(0.8, 0.8, 0.8, 1.0);
         mrasVal = QVector4D(0.2, 0.8, 0.0, 0.1);
-        specularAndTintVal = QVector4D(0.0, 0.0, 0.0, 0.0);
+        specularAndTintVal = QVector4D(1.0, 0.5, 0.0, 0.0);
+        sheenAndTintWithclearCoatAndGlossVal = QVector4D(1.0, 0.8, 1.0, 0.5);
         normalAOVal = QVector4D(0.0, 1.0, 0.0, 0.0);
         LuminanceVal = QVector4D(1.0, 1.0, 1.0, 0.0);
         TransparencyVal = QVector4D(1.0, 1.0, 1.0, 0.0);
@@ -271,8 +273,8 @@ public:
     Texture *specularAndTint;
     QVector4D specularAndTintVal;
     // 光泽度+光泽染色+清漆强度+清漆染色 四合一纹理
-    Texture *sheenAndTintWithclearCoatAndTint;
-    QVector4D sheenAndTintWithclearCoatAndTintVal;
+    Texture *sheenAndTintWithclearCoatAndGloss;
+    QVector4D sheenAndTintWithclearCoatAndGlossVal;
 
     /*
      * TODO: Disney BSDF(2015) 扩展的参数纹理
@@ -346,6 +348,10 @@ public:
               QOpenGLFunctions_4_5_Core *f = globalgl::thisContext);
 
 public:
+    /*
+     * 位置变换
+     */
+    QMatrix4x4 modelMatrix;
     /*
      * 顶点信息，一个Vertex（QVector3D）对象表示一个顶点
      */

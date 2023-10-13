@@ -39,6 +39,10 @@ public:
     /// 基础色兰伯特 shaderProgram
     QOpenGLShaderProgram *diffuseLambert_proj;
 
+    /// 迪士尼BRDF光照模型 fragmentShader
+    QOpenGLShader *disneyBRDF_frag;
+    QOpenGLShaderProgram *disneyBRDF_proj;
+
 signals:
 };
 

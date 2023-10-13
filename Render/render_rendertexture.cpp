@@ -28,9 +28,15 @@ void RenderTexture::deleteRenderTexture(QOpenGLFunctions_4_5_Core &f) {
         if (hasDepthBuffer) {
             if (depthBuffer != 0) {
                 // 解绑texture
+
                 f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                          GL_TEXTURE_2D, 0, 0);
                 f.glDeleteTextures(1, &depthBuffer);
+                //                f.glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                //                                            GL_DEPTH_STENCIL_ATTACHMENT,
+                //                                            GL_RENDERBUFFER,
+                //                                            0);
+                //                f.glDeleteRenderbuffers(1, &depthBuffer);
                 depthBuffer = 0;
             }
         }
@@ -67,6 +73,7 @@ void RenderTexture::recreateRenderTexture(int width, int height,
 
     if (hasDepthBuffer) {
         // 生成第二张：depth buffer
+
         f.glGenTextures(1, &depthBuffer);
         f.glBindTexture(GL_TEXTURE_2D, depthBuffer);
         f.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0,
@@ -76,6 +83,12 @@ void RenderTexture::recreateRenderTexture(int width, int height,
         f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
         f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
         f.glBindTexture(GL_TEXTURE_2D, 0);
+
+        /*
+                f.glGenRenderbuffers(1, &depthBuffer);
+                f.glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+                f.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
+           width, height); f.glBindRenderbuffer(GL_RENDERBUFFER, 0);*/
     }
 
     // 绑定两张贴图
@@ -84,6 +97,9 @@ void RenderTexture::recreateRenderTexture(int width, int height,
     if (hasDepthBuffer) {
         f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                  GL_TEXTURE_2D, depthBuffer, 0);
+        //        f.glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+        //        GL_DEPTH_STENCIL_ATTACHMENT,
+        //                                    GL_RENDERBUFFER, depthBuffer);
     }
 
     if (f.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -108,8 +124,8 @@ void RenderTexture::clear(QOpenGLFunctions_4_5_Core &f) {
                    globalrender::backgroundColor.greenF(),
                    globalrender::backgroundColor.blueF(), 1);
     f.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    f.glEnable(GL_DEPTH_TEST);
-    f.glDisable(GL_BLEND);
+    //    f.glEnable(GL_DEPTH_TEST);
+    //    f.glDisable(GL_BLEND);
 
     // 绑回之前的frame buffer
     f.glBindFramebuffer(GL_FRAMEBUFFER, thisFrameBuffer);

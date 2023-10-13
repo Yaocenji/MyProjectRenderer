@@ -2,8 +2,7 @@
 
 namespace Render {
 
-ShaderManager::ShaderManager(QObject *parent)
-    : QObject{parent} {
+ShaderManager::ShaderManager(QObject *parent) : QObject{parent} {
     // 初始化屏幕shader
     screenShaderVert = new QOpenGLShader(QOpenGLShader::Vertex, this);
     screenShaderVert->compileSourceFile(
@@ -53,6 +52,17 @@ ShaderManager::ShaderManager(QObject *parent)
     diffuseLambert_proj->addShader(vert);
     diffuseLambert_proj->addShader(diffuseLambert_frag);
     diffuseLambert_proj->link();
+
+    // 初始化pbrshader
+    disneyBRDF_frag = new QOpenGLShader(QOpenGLShader::Fragment, this);
+    disneyBRDF_frag->compileSourceFile(
+        ":/FowardRenderingShaders/FowardRendering/DisneyBRDF_PBR.frag");
+
+    disneyBRDF_proj = new QOpenGLShaderProgram(this);
+    disneyBRDF_proj->create();
+    disneyBRDF_proj->addShader(vert);
+    disneyBRDF_proj->addShader(disneyBRDF_frag);
+    disneyBRDF_proj->link();
 }
 
 } // namespace Render

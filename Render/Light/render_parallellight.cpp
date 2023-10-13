@@ -23,6 +23,7 @@ void ParallelLight::bind(QOpenGLShaderProgram *curShader) {
     curShader->setUniformValue(
         "mLight.ColorAndStrength",
         QVector4D(color.redF(), color.greenF(), color.blueF(), strength));
+    curShader->setUniformValue("useMainLight", true);
 }
 
 } // namespace Render
