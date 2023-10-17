@@ -2,8 +2,8 @@
 
 namespace Render {
 
-RenderTexture::RenderTexture(QObject *parent, bool hasDep)
-    : QObject{parent}, hasDepthBuffer(hasDep) {
+RenderTexture::RenderTexture(QObject *parent, bool hasCol, bool hasDep)
+    : QObject{parent}, hasColorTexture(hasCol), hasDepthBuffer(hasDep) {
     frameBuffer = 0;
     colorBuffer = 0;
     depthBuffer = 0;
@@ -18,12 +18,14 @@ void RenderTexture::deleteRenderTexture(QOpenGLFunctions_4_5_Core &f) {
         // 绑定fbo
         f.glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
-        if (colorBuffer != 0) {
-            // 解绑texture
-            f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                     GL_TEXTURE_2D, 0, 0);
-            f.glDeleteTextures(1, &colorBuffer);
-            colorBuffer = 0;
+        if (hasColorTexture) {
+            if (colorBuffer != 0) {
+                // 解绑texture
+                f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                         GL_TEXTURE_2D, 0, 0);
+                f.glDeleteTextures(1, &colorBuffer);
+                colorBuffer = 0;
+            }
         }
         if (hasDepthBuffer) {
             if (depthBuffer != 0) {
@@ -59,24 +61,26 @@ void RenderTexture::recreateRenderTexture(int width, int height,
     // 绑定frame buffer
     f.glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
-    // 生成第一张：color buffer
-    f.glGenTextures(1, &colorBuffer);
-    f.glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    // 1、作为颜色时的HDR；2、作为G-BUFFER时的
-    f.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
-                   GL_FLOAT, NULL);
-    f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    f.glBindTexture(GL_TEXTURE_2D, 0);
+    if (hasColorTexture) {
+        // 生成第一张：color buffer
+        f.glGenTextures(1, &colorBuffer);
+        f.glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        // 1、作为颜色时的HDR；2、作为G-BUFFER时的
+        f.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
+                       GL_FLOAT, NULL);
+        f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+        f.glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
     if (hasDepthBuffer) {
         // 生成第二张：depth buffer
 
         f.glGenTextures(1, &depthBuffer);
         f.glBindTexture(GL_TEXTURE_2D, depthBuffer);
-        f.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0,
+        f.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0,
                        GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         f.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -92,8 +96,10 @@ void RenderTexture::recreateRenderTexture(int width, int height,
     }
 
     // 绑定两张贴图
-    f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                             GL_TEXTURE_2D, colorBuffer, 0);
+    if (hasColorTexture) {
+        f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                 GL_TEXTURE_2D, colorBuffer, 0);
+    }
     if (hasDepthBuffer) {
         f.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                  GL_TEXTURE_2D, depthBuffer, 0);
@@ -132,6 +138,11 @@ void RenderTexture::clear(QOpenGLFunctions_4_5_Core &f) {
 }
 
 GLuint RenderTexture::colorTexture() {
+    if (!hasColorTexture) {
+        qDebug() << "ERROR: this RenderTexture do not has color texture, but "
+                    "the App "
+                    "tries getting it.";
+    }
     return colorBuffer;
 }
 

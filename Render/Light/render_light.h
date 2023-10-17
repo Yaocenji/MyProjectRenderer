@@ -4,6 +4,7 @@
 #include <QColor>
 #include <QObject>
 #include <QVector3D>
+#include <QtMath>
 
 namespace Render {
 

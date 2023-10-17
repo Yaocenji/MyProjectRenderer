@@ -18,7 +18,7 @@ enum CameraControlMode {
 
 class Camera : public QObject {
     Q_OBJECT
-protected:
+public:
     /// 摄像机看向的位置（是海平面/xz平面上的一点）
     QVector3D camlookPos;
     /// 距离系数

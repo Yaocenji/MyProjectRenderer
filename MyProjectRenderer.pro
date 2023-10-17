@@ -12,6 +12,8 @@ SOURCES += \
     Render/Light/render_arealight.cpp \
     Render/Light/render_pointlight.cpp \
     Render/Light/render_roundarealight.cpp \
+    Render/render_cubemap_rendertexture.cpp \
+    Render/render_gl_pipeline.cpp \
     Render/render_gl_realtime_raster_renderer.cpp \
     Render/render_gl_shadermanager.cpp \
     Render/render_mesh.cpp \
@@ -34,6 +36,8 @@ HEADERS += \
     Render/Light/render_arealight.h \
     Render/Light/render_pointlight.h \
     Render/Light/render_roundarealight.h \
+    Render/render_cubemap_rendertexture.h \
+    Render/render_gl_pipeline.h \
     Render/render_gl_realtime_raster_renderer.h \
     Render/render_gl_shadermanager.h \
     Render/render_mesh.h \

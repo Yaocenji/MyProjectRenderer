@@ -1,5 +1,7 @@
 #version 450 core
 
+in vec4 worldPosition;
+in float worldDepth;
 in vec4 clipPos;
 in vec4 ndcPos;
 in vec3 tang;
@@ -7,8 +9,6 @@ in vec3 worldNorm;
 in vec4 col;
 
 in vec2 uv0;
-
-in vec3 worldNormal;
 
 out vec4 FragColor;
 
@@ -26,6 +26,9 @@ uniform bool useMainLight;
 struct pointLight{
     vec4 ColorAndStrength;
     vec3 Position;
+    bool hasShadow;
+    sampler2D ShadowMap;
+    float MaxDistance;
 };
 uniform pointLight pLight[POINT_LIGHT_MAX_NUMBER];
 uniform int usedPointLightNumber;
@@ -65,9 +68,10 @@ uniform vec4 TransparencyVec;
 uniform bool TransparencyUseTex;
 
 
-
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
 uniform mat4 model_inverse;
-// 摄像机参数
 uniform mat4 view_inverse;
 uniform mat4 proj_inverse;
 
@@ -76,7 +80,35 @@ uniform vec3 cameraPos;
 uniform float near;
 uniform float far;
 
+// 测试纹理
+uniform sampler2D test;
+
 #define PI 3.14159265358979323846
+
+float Pow2(float x);
+float Pow5(float x);
+
+float max3(float x, float y, float z){
+    return max(max(x, y), z);
+}
+int whichMax3(float x, float y, float z){
+    if (x > y && x > z){
+        return 0;
+    }
+    else if (y > x && y > z){
+        return 1;
+    }
+    else {
+        return 2;
+    }
+}
+
+// 将深度缓冲值转化为世界空间下距离
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
 
 // 重建世界坐标
 vec3 rebuildWorldPos(){
@@ -85,7 +117,8 @@ vec3 rebuildWorldPos(){
     vec3 farPlaneWorldPos = (view_inverse * proj_inverse * farPlaneClipPos).xyz;
     // 根据重建的位置计算光线方向
     vec3 rayDir = normalize(farPlaneWorldPos - cameraPos);
-    return cameraPos + rayDir * clipPos.z;
+    return cameraPos + rayDir * worldDepth;
+    // return cameraPos + rayDir * LinearizeDepth(gl_FragCoord.z);
 }
 // 读取法线纹理
 vec3 unpackNormal(vec3 rawNormal){
@@ -95,22 +128,149 @@ vec3 unpackNormal(vec3 rawNormal){
     return normalize(ansNormal);
 }
 
-float Pow2(float x);
-float Pow5(float x);
+/**
+* 采样自定义的（假）立方体贴图
+* 六张正方形贴图沿着x顺序排列
+* 看向方向分别是：X+, X-, Y+, Y-, Z+, Z-
+* 上向方向（纹理v轴）分别沿：Y+, Y+, X-, X+, Y+, Y+
+*/
+vec4 textureMyCube(sampler2D myCubeMap, vec3 dir){
+    // 首先判断六向
+    int idx = 0;
+    vec3 ndir = normalize(dir);
+    int wm = whichMax3(abs(ndir.x), abs(ndir.y), abs(ndir.z));
+    if (wm == 0){
+        if (ndir.x > 0) idx = 0;
+        else idx = 1;
+        // 将x归一，同时将y和z也会规范到[-1,1]
+        ndir /= ndir.x;
+    }
+    else if (wm == 1){
+        if (ndir.y > 0) idx = 2;
+        else idx = 3;
+        // 将y归一，同时将x和z也会规范到[-1,1]
+        ndir /= ndir.y;
+    }
+    else{
+        if (ndir.z > 0) idx = 4;
+        else idx = 5;
+        // 将z归一，同时将y和x也会规范到[-1,1]
+        ndir /= ndir.z;
+    }
+    vec2 texcoord;
+    // 根据选择的的某方向的纹理来计算texcoord
+    if (idx == 0){
+        texcoord.x = ndir.z * 0.5 + 0.5;
+        texcoord.y = ndir.y * 0.5 + 0.5;
+    } else if (idx == 1){
+        texcoord.x = ndir.z * 0.5 + 0.5;
+        texcoord.y = (-ndir.y) * 0.5 + 0.5;
+    } 
+    else if (idx == 2){
+        texcoord.x = ndir.z * 0.5 + 0.5;
+        texcoord.y = (-ndir.x) * 0.5 + 0.5;
+    } else if (idx == 3){
+        texcoord.x = (-ndir.z) * 0.5 + 0.5;
+        texcoord.y = (-ndir.x) * 0.5 + 0.5;
+    } 
+    else if (idx == 4){
+        texcoord.x = (-ndir.x) * 0.5 + 0.5;
+        texcoord.y = ndir.y * 0.5 + 0.5;
+    } else if (idx == 5){
+        texcoord.x = (-ndir.x) * 0.5 + 0.5;
+        texcoord.y = (-ndir.y) * 0.5 + 0.5;
+    }
+    texcoord.x = (texcoord.x + float(idx)) / 6.0;
+    // 采样，返回
+    vec4 ans = vec4(0, 0, 0, 1);
+    ans = texture(myCubeMap, texcoord);
+    return ans;
+}
 
-// // Diffuse项
-// vec3 Diffuse(vec3 baseColor, float Difference, float NormalDotLight, float NormalDotView, float roughness);
+/**
+* 计算 某一点光源 的硬阴影值
+*/
+float PointLightShadow(pointLight p, vec3 worldPos){
+    if (!p.hasShadow)
+        return 1.0;
+    float dist = length(worldPos - p.Position);
+    vec3 dir = (worldPos - p.Position) / dist;
+    float shadowMapV = textureMyCube(p.ShadowMap, dir).x * p.ColorAndStrength.w;
 
-// // specular-D项
-// float D_GGX(float NormalDotHalf, float roughness);
+    float ans = 0;
+    if (dist > shadowMapV + 0.01) ans = 0.0;
+    else ans = 1.0;
+    return ans;
+}
+/**
+* 某一光源的PCF软阴影值
+*/
+float PointLightShadowPCF(pointLight p, vec3 worldPos, int samples, float radius){
+    if (!p.hasShadow)
+        return 1.0;
+    float ans = 0;
+    float sumWeight = 0;
+    float dist = length(worldPos - p.Position);
+    for(int x = -samples; x <= samples; x++){
+        for(int y = -samples; y <= samples; y++){
+            for(int z = -samples; z <= samples; z++){
+                float w = exp(-length(vec3(x, y, z) / float(samples)));
+                sumWeight += w;
+                vec3 nPos = worldPos + vec3(x, y, z) * (radius / float(samples));
+                vec3 dir = (nPos - p.Position) / dist;
+                float shadowMapV = textureMyCube(p.ShadowMap, dir).x * p.ColorAndStrength.w;
+                if (dist > shadowMapV + 0.01) ans += 0.0;
+                else ans += w;
+                // ans += PointLightShadow(p, worldPos + vec3(x, y, z) * (radius / float(samples))) * w;
+            }
+        }
+    }
+    ans /= sumWeight;
+    // ans /= float(samples * samples * samples);
+    return ans;
+}
+/**
+* 某一光源的PCSS软阴影值
+*/
+float PointLightShadowPCSS(pointLight p, vec3 pos, vec3 norm, int oc_samples, float oc_radius, int pcf_samples, float pcf_radius){
+    if (!p.hasShadow)
+        return 1.0;
+    int occludedNumber = 0;
+    float occludedAverageDepth = 0;
+    float dist = length(pos - p.Position);
 
-// // specular-Fresnel项
-// vec3 F_Schlick(vec3 F0, float ViewDotHalf);
+    for(int x = -oc_samples; x <= oc_samples; x++){
+        for(int y = -oc_samples; y <= oc_samples; y++){
+            for(int z = -oc_samples; z <= oc_samples; z++){
+                // 该偏置下的新位置
+                vec3 nPos = (pos + vec3(x, y, z) * oc_radius / float(oc_samples));
+                // 该偏置下该点的距离光源的距离
+                float nDist = length(nPos - p.Position);
+                // 新方向
+                vec3 ndir = (nPos - p.Position) / nDist;
+                // 看该点是否被遮挡
+                // 计算该点的shadowmap值
+                float shadowMapV = textureMyCube(p.ShadowMap, ndir).x * p.ColorAndStrength.w;
+                // 如果该点是被遮挡的点
+                if (shadowMapV + 0.01 < dist){
+                    occludedNumber ++;
+                    occludedAverageDepth += shadowMapV;
+                }
+            }
+        }
+    }
+    occludedAverageDepth /= float(occludedNumber);
+    // 平均被遮挡位置的深度与中心深度之差
+    float aveOccDepthDiff = abs(occludedAverageDepth - dist);
+    // 中心深度是dist
+    // pcf模糊范围 相似三角形原理
+    float NdotL = dot(normalize(norm), normalize(p.Position - pos));
+    float NsinL = sqrt(1.0 - NdotL * NdotL);
+    float NtanL = NsinL / NdotL;
+    float blurRadius = pcf_radius * (aveOccDepthDiff / occludedAverageDepth) * max(NtanL, 20.0);
+    return PointLightShadowPCF(p, pos, pcf_samples, max(blurRadius * 0.005 - 0.01, 0));
+}
 
-// // schlickGGX
-// float G_SchlickGGX(float NormalDotView, float roughness, bool isIBL);
-// // specular-G项 
-// float G_Smith(float NormalDotView, float NormalDotLight, float roughness, bool isIBL);
 
 // Disney_BRDF
 vec3 Disney_BRDF    (
@@ -130,6 +290,8 @@ vec3 Disney_BRDF    (
     float clearCoat,
     float clearCoatGloss
     );
+
+
 
 
 void main(){
@@ -234,18 +396,24 @@ void main(){
         float dist = length(pLight[i].Position - worldPos.xyz);
         vec3 lightDir = normalize(pLight[i].Position - worldPos.xyz);
 
-        ans += Disney_BRDF(lightDir, viewDir, worldDetailedNorm, albedo, metallic, roughness, false, anisotropic, subsurface, specular, specularTint, sheen, sheenTint, clearCoat, clearCoatGloss) * max(0, dot(lightDir, worldDetailedNorm)) * pLight[i].ColorAndStrength.xyz * pLight[i].ColorAndStrength.w * exp(-dist);
+        vec3 thisAns = Disney_BRDF(lightDir, viewDir, worldDetailedNorm, albedo, metallic, roughness, false, anisotropic, subsurface, specular, specularTint, sheen, sheenTint, clearCoat, clearCoatGloss) * max(0, dot(lightDir, worldDetailedNorm)) * pLight[i].ColorAndStrength.xyz * pLight[i].ColorAndStrength.w * exp(-dist);
+        if (pLight[i].hasShadow){
+            thisAns *= PointLightShadowPCSS(pLight[i], worldPos, worldDetailedNorm, 5, 0.05, 8, 0.5);
+        }
+        ans += thisAns;
     }
 
     FragColor = vec4(ans.xyz, 1.0);
 
     // testAndDebug
-    // FragColor = vec4(worldDetailedNorm.xyz, 1.0);
+    // float testShadow = PointLightShadowPCSS(pLight[1], worldPos, worldDetailedNorm, 5, 0.05, 8, 0.5);
+    // testShadow = PointLightShadowPCF(pLight[1], worldPos, 10, 0.2);
+    // FragColor = vec4((testShadow * 0.9 + 0.1) * ans.xyz, 1);
 
-    // float dist = length(pLight[0].Position - worldPos.xyz);
-    // FragColor = vec4(dist.xxx, 1.0);
-
-    // FragColor = vec4(sheenTint.xxx, 1.0);
+    // float dist = length(worldPos - pLight[1].Position);
+    // vec3 dir = (worldPos - pLight[1].Position) / dist;
+    // float shadowMapV = textureMyCube(pLight[1].ShadowMap, dir).x * pLight[1].ColorAndStrength.w;
+    // FragColor = vec4(testShadow.xxx, 1);
 }
 
 

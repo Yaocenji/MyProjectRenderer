@@ -10,4 +10,11 @@
         <file>FowardRendering/diffuseLambert.frag</file>
         <file>FowardRendering/DisneyBRDF_PBR.frag</file>
     </qresource>
+    <qresource prefix="/ShadowMapGenerator">
+        <file>ShadowMap/pointShadowMapFrag.frag</file>
+        <file>ShadowMap/pointShadowMapGeom.geom</file>
+        <file>ShadowMap/pointShadowMapVert.vert</file>
+        <file>ShadowMap/pointShadowMapMPassFrag.frag</file>
+        <file>ShadowMap/pointShadowMapMPassVert.vert</file>
+    </qresource>
 </RCC>

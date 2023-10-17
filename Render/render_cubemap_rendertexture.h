@@ -1,5 +1,5 @@
-#ifndef RENDER_RENDERTEXTURE_H
-#define RENDER_RENDERTEXTURE_H
+#ifndef RENDER_CUBEMAP_RENDERTEXTURE_H
+#define RENDER_CUBEMAP_RENDERTEXTURE_H
 
 #include <QDebug>
 #include <QObject>
@@ -11,8 +11,13 @@
 
 namespace Render {
 
-class RenderTexture : public QObject {
+class CubeMapRT : public QObject {
     Q_OBJECT
+public:
+    explicit CubeMapRT(QObject *parent = nullptr, bool hasCol = true,
+                       bool hasDep = false);
+    ~CubeMapRT();
+
 public:
     /// 目标fbo
     GLuint frameBuffer;
@@ -44,13 +49,9 @@ public:
     /// 获得深度纹理
     GLuint depthTexture();
 
-public:
-    explicit RenderTexture(QObject *parent = nullptr, bool hasCol = true,
-                           bool hasDep = false);
-    ~RenderTexture();
-
 signals:
 };
 
 } // namespace Render
-#endif // RENDER_RENDERTEXTURE_H
+
+#endif // RENDER_CUBEMAP_RENDERTEXTURE_H

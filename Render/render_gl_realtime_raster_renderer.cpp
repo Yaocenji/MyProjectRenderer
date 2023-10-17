@@ -15,6 +15,11 @@ GL_Realtime_Raster_Renderer::GL_Realtime_Raster_Renderer(QWidget *parent)
     pointLight1 = nullptr;
 
     cornellBox = nullptr;
+
+    timer = new QTimer(this);
+    timer->setTimerType(Qt::PreciseTimer);
+    timer->setInterval(33);
+    connect(timer, SIGNAL(timeout()), this, SLOT(TimerUpdate()));
 }
 
 void GL_Realtime_Raster_Renderer::initializeGL() {
@@ -26,7 +31,7 @@ void GL_Realtime_Raster_Renderer::initializeGL() {
     shaders = new ShaderManager(this);
 
     // 初始化屏幕shader
-    screenRT = new RenderTexture(this, true);
+    screenRT = new RenderTexture(this, true, true);
     screenRT->recreateRenderTexture(width(), height(), *(this));
 
     // screenMesh是屏幕空间的平面
@@ -54,7 +59,9 @@ void GL_Realtime_Raster_Renderer::initializeGL() {
     model->setToIdentity();
 
     camera0 = new Camera(this);
-    //    camera0->setClipPlanes(0.01, 3.0);
+    camera0->setClipPlanes(0.5, 3.0);
+    //    camera0->rotate(0, 225);
+    //    camera0->camlookPos = QVector3D(-0.1, -0.5, -0.1);
 
     // 初始化光源
     mainLight = new ParallelLight(this);
@@ -62,18 +69,20 @@ void GL_Realtime_Raster_Renderer::initializeGL() {
 
     pointLight0 = new PointLight(this);
     pointLight0->setPos(QVector3D(-0.4, 0.4, 0.4));
-    pointLight0->setStrength(5.0f);
+    pointLight0->setStrength(0.0f);
 
     pointLight1 = new PointLight(this);
-    pointLight1->setPos(QVector3D(0.0, 0.4, 0.0));
-    pointLight1->setStrength(20.0f);
+    pointLight1->setPos(QVector3D(0.4, 0, 0.4));
+    pointLight1->setStrength(25.0f);
+    // 6张顺序：X+X-Y+Y-Z+Z-；
+    pointLight1->shadowMap->recreateRenderTexture(1024 * 6, 1024, *this);
 
     //    qDebug() << glGetError();
 
     // 读取康奈尔盒
     cornellBox = new Model(
         "E:/Qt/QtProjects/MyProjectRenderer/testModelsAndTextures/"
-        "CornellBox_2.fbx",
+        "CornellBox_2_tesselled.fbx",
         this);
     cornellBox->synchronizeGLObjects(this);
 
@@ -90,6 +99,8 @@ void GL_Realtime_Raster_Renderer::resizeGL(int w, int h) {
 }
 
 void GL_Realtime_Raster_Renderer::paintGL() {
+    // 开始计时器
+    if (!timer->isActive()) timer->start();
     // 同步上下文
     globalgl::thisContext = this;
 
@@ -99,11 +110,21 @@ void GL_Realtime_Raster_Renderer::paintGL() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
+    /**
+     * 阴影贴图渲染阶段
+     */
+
+    //    qDebug() << "阴影贴图" << glGetError();
+    pointLight1->RenderShadow(cornellBox, this, shaders);
+
+    /**
+     * 离屏渲染阶段
+     */
+
+    glViewport(0, 0, width(), height());
+    // 清空和绑定屏幕空间渲染纹理
     screenRT->clear(*this);
     screenRT->bind(*this);
-    //    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
-    glClear(GL_COLOR_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
 
     shaders->disneyBRDF_proj->bind();
 
@@ -136,10 +157,22 @@ void GL_Realtime_Raster_Renderer::paintGL() {
     pointLight1->bind(shaders->disneyBRDF_proj, 1);
     shaders->disneyBRDF_proj->setUniformValue("usedPointLightNumber", 2);
 
+    // 将pLight1的阴影贴图绑定到12位置
+    // 将阴影贴图绑定到12+index纹理空间
+    //    glActiveTexture(GL_TEXTURE12);
+    //    glBindTexture(GL_TEXTURE_2D, pointLight1->shadowMap->depthTexture());
+    //    shaders->disneyBRDF_proj->setUniformValue("pLight[1].ShadowMap", 12);
+    //    shaders->disneyBRDF_proj->setUniformValue("pLight[1].hasShadow",
+    //    true);
+
     // 正式绘制
     cornellBox->draw(shaders->disneyBRDF_proj, this);
+    qDebug() << "离屏渲染" << glGetError();
 
-    // 帧缓冲搬运
+    /**
+     * 将渲染纹理的内容搬运到屏幕
+     */
+
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
@@ -155,6 +188,12 @@ void GL_Realtime_Raster_Renderer::paintGL() {
     shaders->screenShaderProgram->setUniformValue("isDebug", false);
 
     screenMesh->draw(shaders->screenShaderProgram, this);
+    qDebug() << "搬运" << glGetError();
+}
+
+void GL_Realtime_Raster_Renderer::TimerUpdate() {
+    //    update();
+    //    pointLight1->position.setY(pointLight1->position.y() + 0.005);
 }
 
 } // namespace Render

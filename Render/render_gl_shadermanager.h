@@ -43,6 +43,23 @@ public:
     QOpenGLShader *disneyBRDF_frag;
     QOpenGLShaderProgram *disneyBRDF_proj;
 
+public:
+    /// 点光源阴影贴图vert
+    QOpenGLShader *pointShadowMapVert;
+    /// 点光源阴影贴图geom
+    QOpenGLShader *pointShadowMapGeom;
+    /// 点光源阴影贴图frag
+    QOpenGLShader *pointShadowMapFrag;
+    /// 点光源阴影shader
+    QOpenGLShaderProgram *pointShadowMapProgram;
+
+    /// 点光源多pass阴影vert
+    QOpenGLShader *pointShadowMapMPassVert;
+    /// 点光源多pass阴影frag
+    QOpenGLShader *pointShadowMapMPassFrag;
+    /// 点光源多pass阴影
+    QOpenGLShaderProgram *pointShadowMapMPassProgram;
+
 signals:
 };
 

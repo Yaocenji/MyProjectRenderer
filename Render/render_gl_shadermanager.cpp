@@ -63,6 +63,38 @@ ShaderManager::ShaderManager(QObject *parent) : QObject{parent} {
     disneyBRDF_proj->addShader(vert);
     disneyBRDF_proj->addShader(disneyBRDF_frag);
     disneyBRDF_proj->link();
+
+    // 初始化阴影贴图shader
+    pointShadowMapVert = new QOpenGLShader(QOpenGLShader::Vertex, this);
+    pointShadowMapVert->compileSourceFile(
+        ":/ShadowMapGenerator/ShadowMap/pointShadowMapVert.vert");
+    pointShadowMapGeom = new QOpenGLShader(QOpenGLShader::Geometry, this);
+    pointShadowMapGeom->compileSourceFile(
+        ":/ShadowMapGenerator/ShadowMap/pointShadowMapGeom.geom");
+    pointShadowMapFrag = new QOpenGLShader(QOpenGLShader::Fragment, this);
+    pointShadowMapFrag->compileSourceFile(
+        ":/ShadowMapGenerator/ShadowMap/pointShadowMapFrag.frag");
+
+    pointShadowMapProgram = new QOpenGLShaderProgram(this);
+    pointShadowMapProgram->create();
+    pointShadowMapProgram->addShader(pointShadowMapVert);
+    pointShadowMapProgram->addShader(pointShadowMapGeom);
+    pointShadowMapProgram->addShader(pointShadowMapFrag);
+    pointShadowMapProgram->link();
+
+    // 初始化多pass点光源阴影贴图shader
+    pointShadowMapMPassVert = new QOpenGLShader(QOpenGLShader::Vertex, this);
+    pointShadowMapMPassVert->compileSourceFile(
+        ":/ShadowMapGenerator/ShadowMap/pointShadowMapMPassVert.vert");
+    pointShadowMapMPassFrag = new QOpenGLShader(QOpenGLShader::Fragment, this);
+    pointShadowMapMPassFrag->compileSourceFile(
+        ":/ShadowMapGenerator/ShadowMap/pointShadowMapMPassFrag.frag");
+
+    pointShadowMapMPassProgram = new QOpenGLShaderProgram(this);
+    pointShadowMapMPassProgram->create();
+    pointShadowMapMPassProgram->addShader(pointShadowMapMPassVert);
+    pointShadowMapMPassProgram->addShader(pointShadowMapMPassFrag);
+    pointShadowMapMPassProgram->link();
 }
 
 } // namespace Render

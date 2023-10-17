@@ -25,7 +25,7 @@ QColor MultipyColor(QColor a, float f, int chan) {
     } else if (chan == 3) {
         ans = QColor(a.red(), a.green(), a.blue(), a.alpha() * f);
     } else {
-        qDebug() << "ERROR：MultipyColor函数，参数错误";
+        qDebug() << "ERROR：MultipyColor函数，参数错误\n";
     }
     return ans;
 }

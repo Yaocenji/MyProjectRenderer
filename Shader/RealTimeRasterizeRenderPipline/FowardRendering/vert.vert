@@ -14,7 +14,8 @@ layout (location = 4) in vec2 Texcoord0;
 // layout (location = 10) in vec2 Texcoord6;
 // layout (location = 11) in vec2 Texcoord7;
 
-// out vec4 worldPos;
+out vec4 worldPosition;
+out float worldDepth;
 out vec4 clipPos;
 out vec4 ndcPos;
 out vec3 tang;
@@ -33,6 +34,8 @@ uniform mat4 model_inverse_transpose;
 // uniform mat4 view_inverse;
 // uniform mat4 proj_inverse;
 
+uniform vec3 cameraPos;
+
 
 void main(){
     // TODO：此处的变换特别考虑
@@ -42,9 +45,9 @@ void main(){
     col = Color;
 
     uv0 = Texcoord0;
-
-    vec4 worldPos = model * vec4(Position, 1.0);
-    clipPos = proj * view * worldPos;
+    worldPosition = model * vec4(Position, 1.0);
+    worldDepth = length(cameraPos - worldPosition.xyz);
+    clipPos = proj * view * worldPosition;
     ndcPos = clipPos / clipPos.w;
     gl_Position = ndcPos;
 

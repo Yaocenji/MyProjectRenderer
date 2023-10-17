@@ -8,6 +8,7 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
+#include <QTimer>
 #include <QTransform>
 
 #include "Light/render_parallellight.h"
@@ -31,6 +32,8 @@ public:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
+public slots:
+    void TimerUpdate();
 
 public:
     /// shaderManager
@@ -57,6 +60,9 @@ public:
     /// CornellBox
     Model *cornellBox;
 
+public:
+    /// 计时器
+    QTimer *timer;
 signals:
 };
 
